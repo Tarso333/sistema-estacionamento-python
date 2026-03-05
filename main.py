@@ -48,13 +48,13 @@ def registrar_entrada():
     FROM Estacionamento
     WHERE hora_saida IS NULL
     """)
-
     ocupadas = cursor.fetchone()[0]
 
     if ocupadas >= TOTAL_VAGAS:
         print("❌ Estacionamento lotado!")
         return
 
+    # Pega o veículo pelo placa
     cursor.execute("SELECT id, tipo FROM Veiculo WHERE placa = %s", (placa,))
     resultado = cursor.fetchone()
 
@@ -64,15 +64,21 @@ def registrar_entrada():
 
     veiculo_id, tipo = resultado
 
-    if vaga in VAGAS_PRIORITARIAS and tipo != "prioritario":
-        print("❌ Essa vaga é prioritária!")
-        return
+    # Bloqueio reforçado para vagas prioritárias
+    if vaga in VAGAS_PRIORITARIAS:
+        if tipo != "prioritario":
+            print(f"❌ Vaga {vaga} é prioritária! Veículo comum não pode estacionar aqui.")
+            return
+    else:
+        if tipo == "prioritario":
+            # Opcional: permitir que prioritário use vaga comum
+            print(f"⚠️ Veículo prioritário usando vaga comum.")
 
+    # Registra a entrada
     sql = """
     INSERT INTO Estacionamento (veiculo_id, vaga, hora_entrada)
     VALUES (%s,%s,NOW())
     """
-
     cursor.execute(sql, (veiculo_id, vaga))
     conexao.commit()
 
